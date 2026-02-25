@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>成长番茄系统</title>
+<style>
+body {
+    font-family: -apple-system;
+    text-align: center;
+    background: #111;
+    color: white;
+}
+button {
+    padding: 15px;
+    margin: 8px;
+    font-size: 16px;
+    border-radius: 12px;
+    border: none;
+    width: 80%;
+}
+.timer-btn { background: #ff4757; }
+.reward-btn { background: #1e90ff; }
+.reset-btn { background: #57606f; }
+h1 { margin-top: 30px; }
+</style>
+</head>
+<body>
+
+<h1>🍅 成长番茄系统</h1>
+
+<h2>等级: <span id="level">1</span></h2>
+<h2>积分: <span id="points">0</span></h2>
+<h2>连续天数: <span id="streak">0</span></h2>
+<h2>倒计时: <span id="time">00:00</span></h2>
+
+<button class="timer-btn" onclick="startTimer(15,10)">15分钟 +10分</button>
+<button class="timer-btn" onclick="startTimer(30,25)">30分钟 +25分</button>
+<button class="timer-btn" onclick="startTimer(45,45)">45分钟 +45分</button>
+
+<br>
+
+<button onclick="failSession()">中途退出</button>
+<button class="reward-btn" onclick="claimReward()">兑换奖励(200分)</button>
+<button class="reset-btn" onclick="resetAll()">重置</button>
+
+<script>
+
+let totalPoints = parseInt(localStorage.getItem("points")) || 0;
+let level = parseInt(localStorage.getItem("level")) || 1;
+let streak = parseInt(localStorage.getItem("streak")) || 0;
+let lastDate = localStorage.getItem("lastDate") || "";
+let timer;
+let currentReward = 0;
+let remainingTime = 0;
+
+function saveData() {
+    localStorage.setItem("points", totalPoints);
+    localStorage.setItem("level", level);
+    localStorage.setItem("streak", streak);
+    localStorage.setItem("lastDate", lastDate);
+}
+
+function updateUI() {
+    document.getElementById("points").innerText = totalPoints;
+    document.getElementById("level").innerText = level;
+    document.getElementById("streak").innerText = streak;
+}
+
+function calculateLevel() {
+    level = Math.floor(Math.sqrt(totalPoints / 100)) + 1;
+}
+
+function updateStreak() {
+    let today = new Date().toDateString();
+    if (lastDate !== today) {
+        if (lastDate === new Date(Date.now() - 86400000).toDateString()) {
+            streak++;
+        } else {
+            streak = 1;
+        }
+        lastDate = today;
+    }
+}
+
+function startTimer(minutes, reward) {
+    if (timer) return;
+
+    currentReward = reward;
+    remainingTime = minutes * 60;
+
+    timer = setInterval(() => {
+        remainingTime--;
+        let m = Math.floor(remainingTime / 60);
+        let s = remainingTime % 60;
+        document.getElementById("time").innerText =
+            String(m).padStart(2, '0') + ":" + String(s).padStart(2, '0');
+
+        if (remainingTime <= 0) {
+            clearInterval(timer);
+            timer = null;
+            totalPoints += currentReward;
+            updateStreak();
+            calculateLevel();
+            saveData();
+            updateUI();
+            alert("完成！获得 " + currentReward + " 积分！");
+        }
+    }, 1000);
+}
+
+function failSession() {
+    if (!timer) return;
+    clearInterval(timer);
+    timer = null;
+
+    if (currentReward == 25) totalPoints -= 5;
+    if (currentReward == 45) totalPoints -= 10;
+
+    if (totalPoints < 0) totalPoints = 0;
+
+    calculateLevel();
+    saveData();
+    updateUI();
+    alert("中途退出，扣分！");
+}
+
+function claimReward() {
+    if (totalPoints >= 200) {
+        totalPoints -= 200;
+        calculateLevel();
+        saveData();
+        updateUI();
+        alert("奖励兑换成功！");
+    } else {
+        alert("积分不足！");
+    }
+}
+
+function resetAll() {
+    localStorage.clear();
+    location.reload();
+}
+
+updateUI();
+
+</script>
+
+</body>
+</html>
